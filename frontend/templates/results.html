@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Processing Results</title>
+</head>
+<body>
+    <h1>Processing Results</h1>
+    
+    {% if video_url %}
+    <h2>Processed Video</h2>
+    <video width="640" height="480" controls>
+        <source src="{{ video_url }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    {% endif %}
+
+    <h2>Processed Data</h2>
+    <pre>{{ data }}</pre>
+</body>
+</html>
