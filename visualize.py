@@ -26,10 +26,24 @@ def load_results(csv_path):
     """Loads detection results from CSV."""
     return pd.read_csv(csv_path)
 
+# def initialize_video(video_path, output_path):
+#     """Initializes video input and output settings."""
+#     cap = cv2.VideoCapture(video_path)
+#     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#     fps = cap.get(cv2.CAP_PROP_FPS)
+#     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+#     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+#     return cap, out, fps, width, height
+
 def initialize_video(video_path, output_path):
     """Initializes video input and output settings."""
     cap = cv2.VideoCapture(video_path)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    
+    # Use H.264 codec for better web compatibility
+    # 'avc1' is the FourCC code for H.264
+    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))

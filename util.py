@@ -20,25 +20,37 @@ dict_int_to_char = {'0': 'O',
                     '5': 'S'}
 
 
+import os
+
 def write_csv(results, output_path):
-    """Write the results to a CSV file."""
+    """Write the results to a CSV file without duplicating headers."""
+    
+    # Check if the file already has content
+    file_exists = os.path.exists(output_path) and os.path.getsize(output_path) > 0
+
     with open(output_path, 'w') as f:
-        f.write('{},{},{},{},{},{},{},{}\n'.format('frame_nmr', 'car_id', 'car_bbox',
-                                                    'license_plate_bbox', 'license_plate_bbox_score', 'license_number',
-                                                    'license_number_score', 'license_plate_color'))
-        
-        for frame_nmr in results.keys():
-            for car_id in results[frame_nmr].keys():
-                if 'car' in results[frame_nmr][car_id] and 'license_plate' in results[frame_nmr][car_id]:
-                    f.write('{},{},{},{},{},{},{},{}\n'.format(frame_nmr,
-                                                                car_id,
-                                                                '[{} {} {} {}]'.format(*results[frame_nmr][car_id]['car']['bbox']),
-                                                                '[{} {} {} {}]'.format(*results[frame_nmr][car_id]['license_plate']['bbox']),
-                                                                results[frame_nmr][car_id]['license_plate']['bbox_score'],
-                                                                results[frame_nmr][car_id]['license_plate']['text'],
-                                                                results[frame_nmr][car_id]['license_plate']['text_score'],
-                                                                results[frame_nmr][car_id]['license_plate']['color']))
-        f.close()
+        # Write header only if the file is empty
+        if not file_exists:
+            f.write('{},{},{},{},{},{},{},{}\n'.format(
+                'frame_nmr', 'car_id', 'car_bbox', 'license_plate_bbox', 
+                'license_plate_bbox_score', 'license_number', 
+                'license_number_score', 'license_plate_color'))
+
+        for frame_nmr, cars in results.items():
+            for car_id, car_data in cars.items():
+                if 'car' in car_data and 'license_plate' in car_data:
+                    f.write('{},{},{},{},{},{},{},{}\n'.format(
+                        frame_nmr,
+                        car_id,
+                        '[{} {} {} {}]'.format(*car_data['car']['bbox']),
+                        '[{} {} {} {}]'.format(*car_data['license_plate']['bbox']),
+                        car_data['license_plate']['bbox_score'],
+                        car_data['license_plate']['text'],
+                        car_data['license_plate']['text_score'],
+                        car_data['license_plate']['color']
+                    ))
+                    
+    
 
 
 def license_complies_format(text):

@@ -4,10 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from processingVideo import process_input
+from processingVideo import process_input, generate_frames
 from add_missing_data import process_interpolation
 from visualize import video_output
 from processCsv import final_csv
+
+from fastapi.responses import StreamingResponse
 
 app = FastAPI()
 
@@ -77,6 +79,13 @@ async def process_uploaded_video(file: UploadFile = File(...)):
         "data": res, 
         "processed_video": output_video_path
     }
+    
+
+@app.get("/video_feed/")
+async def video_feed():
+    """Live video stream."""
+    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+
     
 
 if __name__ == "__main__":

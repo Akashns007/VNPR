@@ -10,8 +10,10 @@ def final_csv(input_file: str, output_file = "output/final_csv.csv"):
     # Drop duplicates by keeping only the row with the highest confidence per car_id
     df_filtered = df.loc[df.groupby('car_id')['license_number_score'].idxmax()]
     
+    
     # Save the cleaned data
     df_filtered.to_csv(output_file, index=False)
+    df_filtered.to_csv("output/data.csv", mode='a', header=False, index=False)
     
     print(f"Filtered data saved to {output_file}")
     

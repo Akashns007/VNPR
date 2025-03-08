@@ -1,13 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Upload Video</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Processing Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .upload-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+        }
+        
+        .upload-area {
+            border: 2px dashed #5c7cfa;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            background-color: #e9ecef;
+            border-color: #4263eb;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #5c7cfa;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, #4263eb 0%, #6e8efb 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 40px;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .featured-card {
+            border-left: 4px solid #4263eb;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 40px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Upload a Video for Processing</h2>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Upload">
-    </form>
+    <div class="app-header">
+        <div class="container">
+            <h1 class="text-center"><i class="fas fa-video me-2"></i>Video Processing System</h1>
+            <p class="text-center mb-0">Upload and process videos for automated analysis</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="upload-container">
+                    <h2 class="mb-4">Upload Video</h2>
+                    
+                    <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+                        <div class="upload-area" id="drop-area">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h4>Drag & Drop Video Here</h4>
+                            <p>or</p>
+                            <button type="button" class="btn btn-primary" id="browse-button">
+                                <i class="fas fa-folder-open me-2"></i>Browse Files
+                            </button>
+                            <input type="file" name="file" id="file-input" class="file-input" accept="video/*">
+                            <p class="mt-3 text-muted">Supported formats: MP4, AVI, MOV</p>
+                        </div>
+                        
+                        <div id="file-details" class="alert alert-info d-none">
+                            <p class="mb-0"><i class="fas fa-file-video me-2"></i><span id="file-name"></span></p>
+                        </div>
+                        
+                        <div class="progress-container" id="progress-container">
+                            <label class="form-label">Processing progress</label>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success" id="upload-button" disabled>
+                                <i class="fas fa-cogs me-2"></i>Process Video
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card featured-card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>About the System</h5>
+                        <p class="card-text">This application processes videos to detect and track objects, providing analytical data visualization and interpolation for missing data points.</p>
+                    </div>
+                </div>
+                
+                <div class="card featured-card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>View Results</h5>
+                        <p class="card-text">Access previously processed video results and analytical data.</p>
+                        <a href="/final_results" class="btn btn-outline-primary">
+                            <i class="fas fa-table me-2"></i>View Data
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const browseButton = document.getElementById('browse-button');
+        const uploadButton = document.getElementById('upload-button');
+        const fileDetails = document.getElementById('file-details');
+        const fileName = document.getElementById('file-name');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.querySelector('.progress-bar');
+        
+        // Trigger file input when browse button is clicked
+        browseButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // Handle file selection
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // Highlight drop area when item is dragged over
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        // Remove highlight when item is dragged away
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        // Form submission handler
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            // Show progress
+            progressContainer.style.display = 'block';
+            
+            // Simulate progress (in a real app, you'd use fetch with progress events)
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = `${Math.min(progress, 95)}%`;
+                
+                if (progress >= 95) {
+                    clearInterval(interval);
+                }
+            }, 300);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function highlight() {
+            dropArea.classList.add('bg-light');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('bg-light');
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+        
+        function handleFileSelect() {
+            if (fileInput.files.length) {
+                const file = fileInput.files[0];
+                
+                // Check if it's a video file
+                if (!file.type.match('video.*')) {
+                    alert('Please select a video file');
+                    return;
+                }
+                
+                // Display file details
+                fileName.textContent = file.name;
+                fileDetails.classList.remove('d-none');
+                
+                // Enable upload button
+                uploadButton.disabled = false;
+            }
+        }
+    </script>
 </body>
 </html>

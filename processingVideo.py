@@ -86,18 +86,64 @@ def process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicl
                             }
                         }
     return results
+        
+import csv
 
+def generate_frames(output_csv="output/live_results.csv"):
+    """Generate frames from webcam for live streaming and save detections to CSV."""
+    coco_model, license_plate_detector, mot_tracker = initialize_models()
+    vehicles = [2, 3, 5, 7]  # COCO dataset vehicle class IDs
+
+    cap = cv2.VideoCapture(0)  # Use webcam
+
+    # Prepare CSV file
+    with open(output_csv, "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["frame_nmr", "car_id", "car_bbox", "license_plate_bbox", 
+                         "license_plate_bbox_score", "license_number", 
+                         "license_number_score", "license_plate_color"])
+
+        frame_nmr = 0
+        while True:
+            success, frame = cap.read()
+            if not success:
+                break
+
+            frame_results = process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles)
+
+            # Save results to CSV if license plates are detected
+            if frame_results:
+                for car_id, data in frame_results.items():
+                    if "car" in data and "license_plate" in data:
+                        writer.writerow([
+                            frame_nmr,
+                            car_id,
+                            data["car"]["bbox"],
+                            data["license_plate"]["bbox"],
+                            data["license_plate"]["bbox_score"],
+                            data["license_plate"]["text"],
+                            data["license_plate"]["text_score"],
+                            data["license_plate"]["color"]
+                        ])
+
+            frame_nmr += 1
+
+            # Encode the frame
+            _, buffer = cv2.imencode('.jpg', frame)
+            frame_bytes = buffer.tobytes()
+
+            # Yield frame for streaming
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+    cap.release()
+    
 def process_input(input_source, output_csv=None):
     """Process a video, image, or live feed dynamically."""
     coco_model, license_plate_detector, mot_tracker = initialize_models()
     vehicles = [2, 3, 5, 7]  # COCO dataset vehicle class IDs
-    real_feed = False
     
-    if isinstance(input_source, str):
-        cap = cv2.VideoCapture(input_source)
-    else:
-        cap = cv2.VideoCapture(0)  # Real-time feed
-        real_feed = True
+    cap = cv2.VideoCapture(input_source)
     
     frame_nmr = -1
     results = {}
@@ -111,12 +157,6 @@ def process_input(input_source, output_csv=None):
         frame_results = process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles)
         if frame_results:
             results[frame_nmr] = frame_results  # Merge instead of nesting under frame number
-        
-        if real_feed:
-            cv2.imshow('Vehicle Number Plate Recognition', frame)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                break
     
     cap.release()
     cv2.destroyAllWindows()
