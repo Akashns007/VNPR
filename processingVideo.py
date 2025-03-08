@@ -11,6 +11,23 @@ def initialize_models():
     mot_tracker = Sort()
     return coco_model, license_plate_detector, mot_tracker
 
+def classify_license_plate_color(license_plate_crop):
+    """Classify the license plate color into one of the four categories."""
+    hsv = cv2.cvtColor(license_plate_crop, cv2.COLOR_BGR2HSV)
+    avg_color = np.mean(hsv, axis=(0, 1))
+    h, s, v = avg_color
+    
+    if 35 <= h <= 85 and s > 50 and v > 50:
+        return "Green"
+    elif 20 <= h <= 35 and s > 50 and v > 50:
+        return "Yellow"
+    elif v > 150 and s < 50:
+        return "White"
+    elif 20 <= h <= 35 and s > 50 and v > 50 and np.mean(hsv[:, :, 2]) < 100:
+        return "Yellow text on Green"
+    else:
+        return "Unknown"
+
 def process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles):
     """Process a single frame for vehicle and license plate detection."""
     results = {}
@@ -27,8 +44,12 @@ def process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicl
                 detections_.append([x1, y1, x2, y2, score])
     
     # Track vehicles
-    track_ids = mot_tracker.update(np.asarray(detections_))
-    
+    # Track vehicles
+    if len(detections_) == 0:
+        track_ids = np.empty((0, 5))  # Prevent empty input error
+    else:
+        track_ids = mot_tracker.update(np.asarray(detections_))
+
     # Detect license plates
     license_plates = license_plate_detector(frame, stream=True)
     license_plates = next(license_plates, None)
@@ -50,6 +71,9 @@ def process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicl
                     # Read license plate number
                     license_plate_text, license_plate_text_score = read_license_plate(license_plate_crop_thresh)
                     
+                    # Determine license plate color
+                    license_plate_color = classify_license_plate_color(license_plate_crop)
+                    
                     if license_plate_text is not None:
                         results[car_id] = {
                             'car': {'bbox': [xcar1, ycar1, xcar2, ycar2]},
@@ -57,16 +81,23 @@ def process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicl
                                 'bbox': [x1, y1, x2, y2],
                                 'text': license_plate_text,
                                 'bbox_score': score,
-                                'text_score': license_plate_text_score
+                                'text_score': license_plate_text_score,
+                                'color': license_plate_color
                             }
                         }
     return results
 
-def process_video(video_path, output_csv):
-    """Process the entire video frame by frame."""
-    cap = cv2.VideoCapture(video_path)
+def process_input(input_source, output_csv=None):
+    """Process a video, image, or live feed dynamically."""
     coco_model, license_plate_detector, mot_tracker = initialize_models()
     vehicles = [2, 3, 5, 7]  # COCO dataset vehicle class IDs
+    real_feed = False
+    
+    if isinstance(input_source, str):
+        cap = cv2.VideoCapture(input_source)
+    else:
+        cap = cv2.VideoCapture(0)  # Real-time feed
+        real_feed = True
     
     frame_nmr = -1
     results = {}
@@ -79,18 +110,24 @@ def process_video(video_path, output_csv):
         frame_nmr += 1
         frame_results = process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles)
         if frame_results:
-            results[frame_nmr] = frame_results
+            results[frame_nmr] = frame_results  # Merge instead of nesting under frame number
+        
+        if real_feed:
+            cv2.imshow('Vehicle Number Plate Recognition', frame)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
     
     cap.release()
-    print(results)
+    cv2.destroyAllWindows()
+    
     if results:
         write_csv(results, output_csv)
         return output_csv
     else:
         return None
 
-
 if __name__ == '__main__':
-    video_path = 'uploads/sample1.mp4'
+    input_source = "uploads/sample_small.mp4"  # Change to 0 for webcam or provide image path
     output_csv = 'output/test.csv'
-    process_video(video_path, output_csv)
+    print(process_input(input_source, output_csv))

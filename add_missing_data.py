@@ -76,7 +76,7 @@ def interpolate_bounding_boxes(data):
                 row['license_plate_bbox_score'] = original_row.get('license_plate_bbox_score', '0')
                 row['license_number'] = original_row.get('license_number', '0')
                 row['license_number_score'] = original_row.get('license_number_score', '0')
-
+                row['license_plate_color'] = original_row.get('license_plate_color', '0')
             interpolated_data.append(row)
     
     return interpolated_data
@@ -85,7 +85,7 @@ def process_interpolation(input_csv, output_csv):
     """Loads the CSV, interpolates bounding boxes, and saves the results."""
     data = load_csv(input_csv)
     interpolated_data = interpolate_bounding_boxes(data)
-    header = ['frame_nmr', 'car_id', 'car_bbox', 'license_plate_bbox', 'license_plate_bbox_score', 'license_number', 'license_number_score']
+    header = ['frame_nmr', 'car_id', 'car_bbox', 'license_plate_bbox', 'license_plate_bbox_score', 'license_number', 'license_number_score', "license_plate_color"]
     save_csv(output_csv, interpolated_data, header)
 
 # Example usage

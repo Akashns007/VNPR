@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from processingVideo import process_video
+from processingVideo import process_input
 from add_missing_data import process_interpolation
 from visualize import video_output
 from processCsv import final_csv
@@ -60,7 +60,7 @@ async def process_uploaded_video(file: UploadFile = File(...)):
         buffer.write(await file.read())
 
     # Step 1: Process video frames
-    results = process_video(file_path, output_csv=output_test_file)
+    results = process_input(file_path, output_csv=output_test_file)
     
     # Step 2: Process video frames for missing data
     process_interpolation(results, output_csv=output_interpolated_file)
