@@ -95,6 +95,27 @@
             max-height: 400px;
             overflow-y: auto;
         }
+
+        /* New styles for real-time feed */
+        .livestream-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        
+        .livestream-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -113,6 +134,15 @@
             <a href="/final_results" class="btn btn-outline-success ms-2">
                 <i class="fas fa-table me-2"></i>View All Results
             </a>
+            <!-- New real-time feed button -->
+            <button id="livestream-btn" class="btn btn-outline-danger ms-2">
+                <i class="fas fa-camera me-2"></i>Start Real-time Feed
+            </button>
+        </div>
+        
+        <!-- New real-time feed container -->
+        <div class="livestream-container" id="livestream-container">
+            <img id="livestream-feed" src="" alt="Real-time video feed">
         </div>
         
         <div class="row">
@@ -260,5 +290,30 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- New JavaScript for real-time feed -->
+    <script>
+        // Real-time video feed functionality
+        document.getElementById('livestream-btn').addEventListener('click', function() {
+            const container = document.getElementById('livestream-container');
+            const feed = document.getElementById('livestream-feed');
+            const button = document.getElementById('livestream-btn');
+            
+            if (container.style.display === 'block') {
+                // Stop the feed
+                container.style.display = 'none';
+                feed.src = '';
+                button.innerHTML = '<i class="fas fa-camera me-2"></i>Start Real-time Feed';
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-danger');
+            } else {
+                // Start the feed
+                container.style.display = 'block';
+                feed.src = '/video_feed';
+                button.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Stop Real-time Feed';
+                button.classList.remove('btn-outline-danger');
+                button.classList.add('btn-danger');
+            }
+        });
+    </script>
 </body>
 </html>

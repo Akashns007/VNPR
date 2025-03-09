@@ -65,19 +65,61 @@
             background-color: #f8f9fa;
             padding-bottom: 40px;
         }
+        
+        /* New styles for real-time feed */
+        .livestream-container {
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .livestream-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+        
+        .real-time-card {
+            border-left: 4px solid #28a745;
+            padding-left: 15px;
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="app-header">
         <div class="container">
-            <h1 class="text-center"><i class="fas fa-video me-2"></i>Video Processing System</h1>
-            <p class="text-center mb-0">Upload and process videos for automated analysis</p>
+            <h1 class="text-center"><i class="fas fa-video me-2"></i>Vehicle Number Plate Recognition System</h1>
+            <p class="text-center mb-0">Upload and process videos for number plate extraction</p>
         </div>
     </div>
 
     <div class="container">
         <div class="row">
             <div class="col-md-8">
+                <!-- Real-time video card - New addition -->
+                <div class="card real-time-card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-camera me-2"></i>Real-time Video Processing</h5>
+                        <p class="card-text">Use your camera for real-time video processing and analysis.</p>
+                        <button type="button" class="btn btn-success" id="livestream-btn">
+                            <i class="fas fa-play-circle me-2"></i>Start Real-time Video Feed
+                        </button>
+                        <!-- Container for the real-time feed -->
+                        <div class="livestream-container mt-3" id="livestream-container">
+                            <img src="" id="livestream-feed" alt="Live video feed">
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="upload-container">
                     <h2 class="mb-4">Upload Video</h2>
                     
@@ -117,7 +159,7 @@
                 <div class="card featured-card mb-4">
                     <div class="card-body">
                         <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>About the System</h5>
-                        <p class="card-text">This application processes videos to detect and track objects, providing analytical data visualization and interpolation for missing data points.</p>
+                        <p class="card-text">This application processes videos to detect and track license plates. and saves data in CSV.</p>
                     </div>
                 </div>
                 
@@ -229,6 +271,29 @@
                 uploadButton.disabled = false;
             }
         }
+        
+        // Real-time video feed functionality
+        document.getElementById('livestream-btn').addEventListener('click', function() {
+            const container = document.getElementById('livestream-container');
+            const feed = document.getElementById('livestream-feed');
+            const button = document.getElementById('livestream-btn');
+            
+            if (container.style.display === 'block') {
+                // Stop the feed
+                container.style.display = 'none';
+                feed.src = '';
+                button.innerHTML = '<i class="fas fa-play-circle me-2"></i>Start Real-time Video Feed';
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-success');
+            } else {
+                // Start the feed
+                container.style.display = 'block';
+                feed.src = '/video_feed';
+                button.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Stop Real-time Video Feed';
+                button.classList.remove('btn-success');
+                button.classList.add('btn-danger');
+            }
+        });
     </script>
 </body>
 </html>

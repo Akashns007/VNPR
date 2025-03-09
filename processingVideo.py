@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from sort.sort import Sort
 from util import get_car, read_license_plate, write_csv
+from visualize import draw_border
 
 def initialize_models():
     """Load the YOLO models and initialize the tracker."""
@@ -12,19 +13,33 @@ def initialize_models():
     return coco_model, license_plate_detector, mot_tracker
 
 def classify_license_plate_color(license_plate_crop):
-    """Classify the license plate color into one of the four categories."""
-    hsv = cv2.cvtColor(license_plate_crop, cv2.COLOR_BGR2HSV)
-    avg_color = np.mean(hsv, axis=(0, 1))
-    h, s, v = avg_color
+    """Classify the license plate color, handling grayscale images properly."""
+    
+    if len(license_plate_crop.shape) == 3:
+        # Convert to HSV only if it's a color image
+        hsv = cv2.cvtColor(license_plate_crop, cv2.COLOR_BGR2HSV)
+        avg_color = np.mean(hsv, axis=(0, 1))
+        h, s, v = avg_color
+    else:
+
+        v = np.mean(license_plate_crop)
+        h, s = 0, 0  
+    
+
+    if s == 0:  
+        if v > 100:  
+            return "White"
+        else:
+            return "Unknown (Dark)"
     
     if 35 <= h <= 85 and s > 50 and v > 50:
-        return "Green"
+        return "Green(EV)"
     elif 20 <= h <= 35 and s > 50 and v > 50:
-        return "Yellow"
-    elif v > 150 and s < 50:
-        return "White"
+        return "Yellow(COM)"
+    elif v > 130 and s < 60:
+        return "White(PVT)"
     elif 20 <= h <= 35 and s > 50 and v > 50 and np.mean(hsv[:, :, 2]) < 100:
-        return "Yellow text on Green"
+        return "Yellow and Green(COM,EV)"
     else:
         return "Unknown"
 
@@ -85,81 +100,45 @@ def process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicl
                                 'color': license_plate_color
                             }
                         }
-    return results
-        
-import csv
-
-def generate_frames(output_csv="output/live_results.csv"):
-    """Generate frames from webcam for live streaming and save detections to CSV."""
-    coco_model, license_plate_detector, mot_tracker = initialize_models()
-    vehicles = [2, 3, 5, 7]  # COCO dataset vehicle class IDs
-
-    cap = cv2.VideoCapture(0)  # Use webcam
-
-    # Prepare CSV file
-    with open(output_csv, "a", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["frame_nmr", "car_id", "car_bbox", "license_plate_bbox", 
-                         "license_plate_bbox_score", "license_number", 
-                         "license_number_score", "license_plate_color"])
-
-        frame_nmr = 0
-        while True:
-            success, frame = cap.read()
-            if not success:
-                break
-
-            frame_results = process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles)
-
-            # Save results to CSV if license plates are detected
-            if frame_results:
-                for car_id, data in frame_results.items():
-                    if "car" in data and "license_plate" in data:
-                        writer.writerow([
-                            frame_nmr,
-                            car_id,
-                            data["car"]["bbox"],
-                            data["license_plate"]["bbox"],
-                            data["license_plate"]["bbox_score"],
-                            data["license_plate"]["text"],
-                            data["license_plate"]["text_score"],
-                            data["license_plate"]["color"]
-                        ])
-
-            frame_nmr += 1
-
-            # Encode the frame
-            _, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-
-            # Yield frame for streaming
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-
-    cap.release()
+    return results      
     
-def process_input(input_source, output_csv=None):
+def process_input(input_source, output_csv=None, live_feed=False):
     """Process a video, image, or live feed dynamically."""
     coco_model, license_plate_detector, mot_tracker = initialize_models()
     vehicles = [2, 3, 5, 7]  # COCO dataset vehicle class IDs
     
-    cap = cv2.VideoCapture(input_source)
-    
+    if input_source:
+        cap = cv2.VideoCapture(input_source)
+    else:
+        cap = cv2.VideoCapture(0)
+        input_source =  "Webcam.mp4"
+        
     frame_nmr = -1
     results = {}
-    
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-        frame_nmr += 1
-        frame_results = process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles)
-        if frame_results:
-            results[frame_nmr] = frame_results  # Merge instead of nesting under frame number
-    
-    cap.release()
-    cv2.destroyAllWindows()
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            frame_nmr += 1
+            frame_results = process_frame(frame, coco_model, license_plate_detector, mot_tracker, vehicles)
+            if frame_results:
+                results[frame_nmr] = frame_results  # Merge instead of nesting under frame number
+            # if input_source == "Webcam.mp4":
+            #     # Encode the frame
+            #     _, buffer = cv2.imencode('.jpg', frame)
+            #     frame_bytes = buffer.tobytes()
+
+                # # Yield frame for streaming
+                # if live_feed:
+                #     yield (b'--frame\r\n'
+                #         b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                # else:
+                #     break
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
     
     if results:
         write_csv(results, output_csv)
@@ -168,6 +147,9 @@ def process_input(input_source, output_csv=None):
         return None
 
 if __name__ == '__main__':
-    input_source = "uploads/sample_small.mp4"  # Change to 0 for webcam or provide image path
-    output_csv = 'output/test.csv'
-    print(process_input(input_source, output_csv))
+    # input_source = "uploads/sample_small.mp4"  
+    # output_csv = 'output/test.csv'
+    # print(process_input(input_source, output_csv))
+    image_path = "images/commercial ev.png"
+    image = cv2.imread(image_path)
+    print(classify_license_plate_color(image))

@@ -30,11 +30,10 @@ def write_csv(results, output_path):
 
     with open(output_path, 'w') as f:
         # Write header only if the file is empty
-        if not file_exists:
-            f.write('{},{},{},{},{},{},{},{}\n'.format(
-                'frame_nmr', 'car_id', 'car_bbox', 'license_plate_bbox', 
-                'license_plate_bbox_score', 'license_number', 
-                'license_number_score', 'license_plate_color'))
+        f.write('{},{},{},{},{},{},{},{}\n'.format(
+            'frame_nmr', 'car_id', 'car_bbox', 'license_plate_bbox', 
+            'license_plate_bbox_score', 'license_number', 
+            'license_number_score', 'license_plate_color'))
 
         for frame_nmr, cars in results.items():
             for car_id, car_data in cars.items():
@@ -150,3 +149,10 @@ def get_car(license_plate, vehicle_track_ids):
         return vehicle_track_ids[car_indx]
 
     return -1, -1, -1, -1, -1
+
+
+
+
+if __name__ == '__main__':
+    # Test the license plate reader
+    write_csv()
